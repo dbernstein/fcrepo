@@ -26,5 +26,23 @@
             { "classname" : "org.fcrepo.auth.common.BypassSecurityServletAuthenticationProvider" }
         ]
     },
+    "indexProviders" : {
+        "local" : {
+            "classname" : "local",
+            "directory" : "target/indexes",
+            "cacheLRUEnable" : true,
+            "mmapFileEnable" : true,
+            "cacheSize" : 65536            
+        }
+    },
+    "indexes": {
+        "hasParent" : {
+            "provider" : "local",
+            "nodeType" : "fedora:Container",
+            "description" : "Index for quickly identifying nodes by node type",
+            "columns" : "fedora:hasParent(STRING)"
+        }
+    },    
+    
     "node-types" : ["fedora-node-types.cnd"]
 }
