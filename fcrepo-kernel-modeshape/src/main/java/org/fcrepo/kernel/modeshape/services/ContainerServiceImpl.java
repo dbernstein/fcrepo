@@ -23,6 +23,7 @@ import static org.fcrepo.kernel.modeshape.ContainerImpl.hasMixin;
 import static org.fcrepo.kernel.modeshape.utils.FedoraTypesUtils.getContainingNode;
 import static org.fcrepo.kernel.modeshape.utils.FedoraTypesUtils.touch;
 import static org.fcrepo.kernel.modeshape.utils.FedoraTypesUtils.touchLdpMembershipResource;
+import static org.fcrepo.kernel.modeshape.utils.FedoraTypesUtils.setHasParent;
 import static org.modeshape.jcr.api.JcrConstants.JCR_CONTENT;
 import static org.modeshape.jcr.api.JcrConstants.NT_FOLDER;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -70,6 +71,7 @@ public class ContainerServiceImpl extends AbstractService implements ContainerSe
                 getContainingNode(node).ifPresent(parent -> {
                     touch(parent);
                     touchLdpMembershipResource(node);
+                    setHasParent(node, parent);
                 });
             }
 

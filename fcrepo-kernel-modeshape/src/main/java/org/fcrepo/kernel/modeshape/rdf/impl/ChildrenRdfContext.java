@@ -15,19 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.kernel.modeshape.rdf.impl;
 
-import org.apache.jena.rdf.model.Resource;
-import org.fcrepo.kernel.api.models.FedoraResource;
-import org.fcrepo.kernel.api.identifiers.IdentifierConverter;
-import org.slf4j.Logger;
-
-import javax.jcr.RepositoryException;
-
+import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.graph.Triple.create;
-import static org.fcrepo.kernel.api.RdfLexicon.CONTAINS;
+
 import static org.fcrepo.kernel.modeshape.utils.FedoraTypesUtils.getJcrNode;
 import static org.slf4j.LoggerFactory.getLogger;
+
+import java.text.MessageFormat;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
+
+import org.fcrepo.kernel.api.RdfLexicon;
+import org.fcrepo.kernel.api.identifiers.IdentifierConverter;
+import org.fcrepo.kernel.api.models.FedoraResource;
+
+import org.apache.jena.rdf.model.Resource;
+import org.slf4j.Logger;
 
 /**
  * @author cabeer
@@ -46,15 +60,43 @@ public class ChildrenRdfContext extends NodeRdfContext {
      * @throws javax.jcr.RepositoryException if repository exception occurred
      */
     public ChildrenRdfContext(final FedoraResource resource,
-                              final IdentifierConverter<Resource, FedoraResource> idTranslator)
+            final IdentifierConverter<Resource, FedoraResource> idTranslator)
             throws RepositoryException {
         super(resource, idTranslator);
+        final Node node = getJcrNode(resource);
+        if (node.hasNodes()) {
 
-        if (getJcrNode(resource).hasNodes()) {
-            LOGGER.trace("Found children of this resource: {}", resource.getPath());
+            try {
+                // Obtain the query manager for the session via the workspace ...
+                final QueryManager queryManager = node.getSession().getWorkspace().getQueryManager();
+                final String template = "SELECT [jcr:path] FROM [nt:base] AS s WHERE [fedora:hasParent] = ''{0}''";
+                final String statement = MessageFormat.format(template, resource().getPath());
 
-            concat(resource().getChildren().peek(child -> LOGGER.trace("Creating triple for child node: {}", child))
-                    .map(child -> create(subject(), CONTAINS.asNode(), uriFor(child.getDescribedResource()))));
+                final Query query = queryManager.createQuery(statement, Query.JCR_SQL2);
+
+                final QueryResult result = query.execute();
+                final RowIterator it = result.getRows();
+                @SuppressWarnings("unchecked")
+                final Iterable<Row> iterable = () -> it;
+                final Stream<String> childUris = StreamSupport.stream(iterable.spliterator(), false).map(x -> {
+                    try {
+                        return x.getValue("jcr:path").getString();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+                LOGGER.trace("Found children of this resource: {}", resource.getPath());
+                concat(childUris.peek(child -> LOGGER.trace("Creating triple for child uri: {}", child))
+                        .map(child -> {
+                            final String uri = idTranslator.toDomain(child).getURI();
+                            return create(subject(), RdfLexicon.CONTAINS.asNode(), createURI(uri));
+                        }));
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
         }
     }
 

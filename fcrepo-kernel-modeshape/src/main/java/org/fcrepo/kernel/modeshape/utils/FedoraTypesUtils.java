@@ -404,6 +404,20 @@ public abstract class FedoraTypesUtils implements FedoraTypes {
     }
 
     /**
+     * Update the fedora:hasParent date of the node.
+     *
+     * @param node The JCR node
+     */
+    public static void setHasParent(final Node node, final Node parent) {
+        try {
+            node.setProperty("fedora:hasParent", parent.getPath());
+        } catch (final javax.jcr.AccessDeniedException ex) {
+            throw new AccessDeniedException(ex);
+        } catch (final RepositoryException ex) {
+            throw new RepositoryRuntimeException(ex);
+        }
+    }
+    /**
      * Get the JCR Node that corresponds to the containing node in the repository.
      * This may be the direct parent node, but it may also be a more distant ancestor.
      *
