@@ -21,6 +21,7 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.rdf.model.Resource;
 
 import org.fcrepo.kernel.api.models.FedoraResource;
+import org.fcrepo.kernel.api.RdfLexicon;
 import org.fcrepo.kernel.api.identifiers.IdentifierConverter;
 import org.fcrepo.kernel.modeshape.rdf.converters.ValueConverter;
 import org.fcrepo.kernel.modeshape.rdf.impl.mappings.PropertyValueIterator;
@@ -29,11 +30,18 @@ import org.fcrepo.kernel.modeshape.utils.UncheckedPredicate;
 
 import org.slf4j.Logger;
 
+import java.text.MessageFormat;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 
 import static java.util.stream.Stream.empty;
 import static java.util.stream.Stream.of;
@@ -48,7 +56,7 @@ import static org.fcrepo.kernel.api.FedoraTypes.LDP_INSERTED_CONTENT_RELATION;
 import static org.fcrepo.kernel.api.FedoraTypes.LDP_MEMBER_RESOURCE;
 import static org.fcrepo.kernel.api.RdfLexicon.LDP_MEMBER;
 import static org.fcrepo.kernel.api.RdfLexicon.MEMBER_SUBJECT;
-import static org.fcrepo.kernel.modeshape.identifiers.NodeResourceConverter.nodeConverter;
+//import static org.fcrepo.kernel.modeshape.identifiers.NodeResourceConverter.nodeConverter;
 import static org.fcrepo.kernel.modeshape.rdf.converters.PropertyConverter.getPropertyNameFromPredicate;
 import static org.fcrepo.kernel.modeshape.utils.FedoraTypesUtils.getJcrNode;
 import static org.fcrepo.kernel.modeshape.utils.FedoraTypesUtils.getReferencePropertyName;
@@ -72,12 +80,46 @@ public class LdpContainerRdfContext extends NodeRdfContext {
      * @throws javax.jcr.RepositoryException if repository exception occurred
      */
     public LdpContainerRdfContext(final FedoraResource resource,
-                                  final IdentifierConverter<Resource, FedoraResource> idTranslator)
+            final IdentifierConverter<Resource, FedoraResource> idTranslator)
             throws RepositoryException {
         super(resource, idTranslator);
 
-        concat(getMembershipContext(resource)
-                .flatMap(uncheck(p -> memberRelations(nodeConverter.convert(p.getParent())))));
+        // concat(getMembershipContext(resource)
+        // .flatMap(uncheck(p -> memberRelations(nodeConverter.convert(p.getParent())))));
+        try {
+            final Node node = getJcrNode(resource);
+
+            // Obtain the query manager for the session via the workspace ...
+            final QueryManager queryManager = node.getSession().getWorkspace().getQueryManager();
+            final String template =
+                    "SELECT [jcr:path] FROM [nt:base] AS s WHERE [ns001:proxyIn] = ''{0}''";
+            final String statement = MessageFormat.format(template, resource().getPath());
+
+            final Query query = queryManager.createQuery(statement, Query.JCR_SQL2);
+
+            final QueryResult result = query.execute();
+            final RowIterator it = result.getRows();
+            @SuppressWarnings("unchecked")
+            final Iterable<Row> iterable = () -> it;
+            final Stream<String> childUris = StreamSupport.stream(iterable.spliterator(), false).map(x -> {
+                try {
+                    return x.getValue("jcr:path").getString();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+            LOGGER.trace("Found children of this resource: {}", resource.getPath());
+            concat(childUris.peek(child -> LOGGER.trace("Creating triple for child uri: {}", child))
+                    .map(child -> {
+                        final String uri = idTranslator.toDomain(child).getURI();
+                        return create(subject(), RdfLexicon.HAS_MEMBER_RELATION.asNode(), createURI(uri));
+                    }));
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     @SuppressWarnings("unchecked")

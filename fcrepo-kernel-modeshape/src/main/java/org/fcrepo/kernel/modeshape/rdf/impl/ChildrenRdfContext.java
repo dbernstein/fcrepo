@@ -70,7 +70,7 @@ public class ChildrenRdfContext extends NodeRdfContext {
                 // Obtain the query manager for the session via the workspace ...
                 final QueryManager queryManager = node.getSession().getWorkspace().getQueryManager();
                 final String template =
-                        "SELECT [jcr:path] FROM [fedora:Container] AS s WHERE [fedora:hasParent] = ''{0}''";
+                        "SELECT [jcr:path] FROM [nt:base] AS s WHERE [fedora:hasParent] = ''{0}''";
                 final String statement = MessageFormat.format(template, resource().getPath());
 
                 final Query query = queryManager.createQuery(statement, Query.JCR_SQL2);

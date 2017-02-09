@@ -30,7 +30,7 @@
         "local" : {
             "classname" : "local",
             "directory" : "target/indexes",
-            "cacheLRUEnable" : true,
+            "cacheLRUEnable" : false,
             "mmapFileEnable" : true,
             "cacheSize" : 65536            
         }
@@ -38,10 +38,17 @@
     "indexes": {
         "hasParent" : {
             "provider" : "local",
-            "nodeType" : "fedora:Container",
-            "description" : "Index for quickly identifying nodes by node type",
+            "nodeType" : "nt:base",
+            "description" : "Index children",
             "columns" : "fedora:hasParent(STRING)"
+        },
+        "proxyIn" : {
+            "provider" : "local",
+            "nodeType" : "nt:base",
+            "description" : "Index proxies",
+            "columns" : "ns001:proxyIn(STRING)"
         }
+        
     },    
     
     "node-types" : ["fedora-node-types.cnd"]
