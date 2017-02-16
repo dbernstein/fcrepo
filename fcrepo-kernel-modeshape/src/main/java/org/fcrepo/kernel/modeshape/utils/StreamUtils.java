@@ -38,7 +38,7 @@ public class StreamUtils {
      * @return the stream
      */
     public static <T> Stream<T> iteratorToStream(final Iterator<T> iterator) {
-        return iteratorToStream(iterator, false);
+        return iteratorToStream(iterator, true);
     }
 
     /**
