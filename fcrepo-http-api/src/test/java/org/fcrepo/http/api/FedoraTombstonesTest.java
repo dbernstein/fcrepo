@@ -19,6 +19,7 @@ package org.fcrepo.http.api;
 
 import org.fcrepo.http.commons.session.HttpSession;
 import org.fcrepo.kernel.api.models.Tombstone;
+import org.fcrepo.kernel.api.services.DeleteResourceService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,12 +53,15 @@ public class FedoraTombstonesTest {
     @Mock
     private SecurityContext mockSecurityContext;
 
+    @Mock
+    private DeleteResourceService deleteResourceService;
 
     @Before
     public void setUp() {
         testObj = spy(new FedoraTombstones(path));
         setField(testObj, "session", mockSession);
         setField(testObj, "securityContext", mockSecurityContext);
+        setField(testObj, "deleteResourceService", deleteResourceService);
     }
 
     @Test
@@ -68,7 +72,7 @@ public class FedoraTombstonesTest {
 
         final Response actual = testObj.delete();
         assertEquals(NO_CONTENT.getStatusCode(), actual.getStatus());
-        verify(mockResource).delete();
+        verify(deleteResourceService).perform(mockResource);
         verify(mockSession).commit();
     }
 }

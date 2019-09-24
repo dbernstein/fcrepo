@@ -54,7 +54,9 @@ import org.fcrepo.kernel.api.FedoraRepository;
 import org.fcrepo.kernel.api.FedoraSession;
 import org.fcrepo.kernel.api.exception.InvalidChecksumException;
 import org.fcrepo.kernel.api.identifiers.IdentifierConverter;
+import org.fcrepo.kernel.api.models.Container;
 import org.fcrepo.kernel.api.models.FedoraResource;
+import org.fcrepo.kernel.api.services.DeleteResourceService;
 import org.fcrepo.kernel.api.services.ReplacePropertiesService;
 import org.fcrepo.kernel.api.services.UpdatePropertiesService;
 
@@ -105,6 +107,9 @@ abstract class AbstractJmsIT implements MessageListener {
 
     @Inject
     private ReplacePropertiesService replacePropertiesService;
+
+    @Inject
+    private DeleteResourceService deleteResourceService;
 
     @Inject
     private ActiveMQConnectionFactory connectionFactory;
@@ -159,7 +164,10 @@ abstract class AbstractJmsIT implements MessageListener {
             session.commit();
             awaitMessageOrFail(testFile, RESOURCE_MODIFICATION.getType(), REPOSITORY_NAMESPACE + "Binary");
 
-            // binaryService.find(session, testFile).delete();
+            final FedoraResource binaryResource = null;
+            //TODO update previous line to support new binary resource location
+            // approach that will replace binaryService.find(session, testFile)
+            deleteResourceService.perform(binaryResource);
             session.commit();
             awaitMessageOrFail(testFile, RESOURCE_DELETION.getType(), null);
         } finally {
@@ -218,9 +226,10 @@ abstract class AbstractJmsIT implements MessageListener {
         session.addSessionData(USER_AGENT, TEST_USER_AGENT);
 
         try {
-            // final Container resource = containerService.findOrCreate(session, testRemoved);
-            session.commit();
-            // resource.delete();
+            //TODO connect the next line with the new resource creation mechanism
+            // that will replace containerService.findOrCreate(session, testRemoved);
+            final Container resource = null;
+            deleteResourceService.perform(resource);
             session.commit();
             awaitMessageOrFail(testRemoved, RESOURCE_DELETION.getType(), null);
         } finally {
