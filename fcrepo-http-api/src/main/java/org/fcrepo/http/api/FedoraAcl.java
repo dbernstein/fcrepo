@@ -71,11 +71,14 @@ import org.fcrepo.http.api.PathLockManager.AcquiredLock;
 import org.fcrepo.http.commons.domain.PATCH;
 import org.fcrepo.http.commons.domain.RDFMediaType;
 import org.fcrepo.http.commons.responses.RdfNamespacedStream;
+import org.fcrepo.kernel.api.FedoraTransaction;
 import org.fcrepo.kernel.api.RdfStream;
 import org.fcrepo.kernel.api.exception.AccessDeniedException;
 import org.fcrepo.kernel.api.exception.ItemNotFoundException;
+import org.fcrepo.kernel.api.exception.PathNotFoundException;
 import org.fcrepo.kernel.api.exception.PathNotFoundRuntimeException;
 import org.fcrepo.kernel.api.models.FedoraResource;
+import org.fcrepo.kernel.api.models.ResourceFactory;
 import org.fcrepo.kernel.api.rdf.DefaultRdfStream;
 import org.fcrepo.kernel.api.services.DeleteResourceService;
 import org.slf4j.Logger;
@@ -105,6 +108,8 @@ public class FedoraAcl extends ContentExposingResource {
     @Inject
     private DeleteResourceService deleteResourceService;
 
+    @Inject
+    ResourceFactory resourceFactory;
     /**
      * Default JAX-RS entry point
      */
@@ -126,34 +131,36 @@ public class FedoraAcl extends ContentExposingResource {
             throw new BadRequestException("ACL resource creation is not allowed for resource " + resource().getPath());
         }
 
-        final boolean created;
-        final FedoraResource aclResource;
+        boolean created = false;
+        FedoraResource aclResource;
 
-        final String path = toPath(translator(), externalPath);
-        final AcquiredLock lock = lockManager.lockForWrite(path, session.getFedoraSession(), nodeService);
+        LOGGER.info("PUT acl resource '{}'", externalPath);
+
+        final String fedoraIdentifier = resolveIdentifier(externalPath);
+        final FedoraTransaction tx = getTransaction();
+
         try {
-            LOGGER.info("PUT acl resource '{}'", externalPath);
-
-            aclResource = resource().findOrCreateAcl();
-            created = aclResource.isNew();
-
-            final MediaType contentType =
-                getSimpleContentType(requestContentType == null ? RDFMediaType.TURTLE_TYPE : requestContentType);
-            if (isRdfContentType(contentType.toString())) {
-
-                try (final RdfStream resourceTriples =
-                         created ? new DefaultRdfStream(asNode(aclResource)) : getResourceTriples(aclResource)) {
-                    replaceResourceWithStream(aclResource, requestBodyStream, contentType, resourceTriples);
-
-                }
-            } else {
-                throw new BadRequestException("Content-Type (" + requestContentType + ") is invalid. Try text/turtle " +
-                                              "or other RDF compatible type.");
-            }
-            session.commit();
-        } finally {
-            lock.release();
+            aclResource = resourceFactory.getResource(tx, fedoraIdentifier);
+        } catch (PathNotFoundException ex){
+            aclResource = resourceFactory.createAcl(tx, fedoraIdentifier);
+            created = true;
         }
+
+        final MediaType contentType =
+            getSimpleContentType(requestContentType == null ? RDFMediaType.TURTLE_TYPE : requestContentType);
+        if (isRdfContentType(contentType.toString())) {
+
+            try (final RdfStream resourceTriples =
+                     created ? new DefaultRdfStream(asNode(aclResource)) : getResourceTriples(aclResource)) {
+                replaceResourceWithStream(aclResource, requestBodyStream, contentType, resourceTriples);
+
+            }
+        } else {
+            throw new BadRequestException("Content-Type (" + requestContentType + ") is invalid. Try text/turtle " +
+                                          "or other RDF compatible type.");
+        }
+
+        tx.commitIfShortLived();
 
         addCacheControlHeaders(servletResponse, aclResource, session);
         final URI location = getUri(aclResource);

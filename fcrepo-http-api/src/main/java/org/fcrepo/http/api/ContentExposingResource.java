@@ -145,6 +145,7 @@ import org.fcrepo.http.commons.domain.ldp.LdpPreferTag;
 import org.fcrepo.http.commons.responses.RangeRequestInputStream;
 import org.fcrepo.http.commons.responses.RdfNamespacedStream;
 import org.fcrepo.http.commons.session.HttpSession;
+import org.fcrepo.kernel.api.FedoraTransaction;
 import org.fcrepo.kernel.api.RdfStream;
 import org.fcrepo.kernel.api.TripleCategory;
 import org.fcrepo.kernel.api.exception.ACLAuthorizationConstraintViolationException;
@@ -305,9 +306,26 @@ public abstract class ContentExposingResource extends FedoraBaseResource {
         varyValues.forEach(x -> servletResponse.addHeader("Vary", x));
     }
 
+    /**
+     * Translates an external path into a Fedora resource identifier
+     * @param externalPath The external (ie LDP) path
+     * @return The fedora identifier
+     */
+    protected String resolveIdentifier(final String externalPath) {
+        //TODO verify that this actually what we want.
+        return "info:fedora" + externalPath;
+    }
 
-
-
+    /**
+     * Returns the transaction associated with the current request.
+     * It should always return non-null.
+     *
+     * @return the transaction
+     */
+    protected FedoraTransaction getTransaction(create) {
+        //TODO Implement this method
+        return null;
+    }
 
     protected RdfStream getResourceTriples(final FedoraResource resource) {
         return getResourceTriples(-1, resource);

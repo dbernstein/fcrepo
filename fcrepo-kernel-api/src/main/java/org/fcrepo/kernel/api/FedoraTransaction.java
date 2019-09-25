@@ -30,6 +30,11 @@ public interface FedoraTransaction {
     void commit();
 
     /**
+     * Commit the transaction only if it is short-lived
+     */
+    void commitIfShortLived();
+
+    /**
      * Rollback the transaction
      */
     void rollback();

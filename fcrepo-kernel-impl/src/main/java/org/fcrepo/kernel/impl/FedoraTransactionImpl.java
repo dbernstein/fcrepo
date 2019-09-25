@@ -42,6 +42,11 @@ public class FedoraTransactionImpl implements FedoraTransaction {
     }
 
     @Override
+    public void commitIfShortLived() {
+        //check that transaction is shortlived before committing.
+    }
+
+    @Override
     public void rollback() {
         // Rollback Persistence Transactions
 
