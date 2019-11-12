@@ -50,7 +50,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-/**
+ /**
  * @author dbernstein
  * @since 6.0.0
  */

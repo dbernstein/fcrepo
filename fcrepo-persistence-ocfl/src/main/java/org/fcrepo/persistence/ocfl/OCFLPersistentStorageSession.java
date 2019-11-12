@@ -180,7 +180,6 @@ public class OCFLPersistentStorageSession implements PersistentStorageSession {
         }
     }
 
-
     private OCFLObjectSession findOrCreateSession(final String ocflId) {
         final OCFLObjectSession sessionObj = this.sessionMap.get(ocflId);
         if (sessionObj != null) {
