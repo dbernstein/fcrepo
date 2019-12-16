@@ -215,7 +215,7 @@ public class OCFLPersistentStorageSession implements PersistentStorageSession {
         try {
             return fedoraOcflIndex.getMapping(identifier);
         } catch (FedoraOCFLMappingNotFoundException e) {
-            throw new PersistentStorageException(e.getMessage());
+            throw new PersistentItemNotFoundException(e.getMessage());
         }
     }
 
