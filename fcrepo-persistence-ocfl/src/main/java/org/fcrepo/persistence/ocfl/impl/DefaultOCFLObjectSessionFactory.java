@@ -18,7 +18,6 @@
 package org.fcrepo.persistence.ocfl.impl;
 
 import static java.lang.System.getProperty;
-import static org.apache.commons.lang3.SystemUtils.JAVA_IO_TMPDIR;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -55,7 +54,7 @@ public class DefaultOCFLObjectSessionFactory implements OCFLObjectSessionFactory
             return new File(path);
         } else {
             //return default
-            return Paths.get(getProperty(JAVA_IO_TMPDIR), defaultDirectoryName).toFile();
+            return Paths.get("fcrepo-data", defaultDirectoryName).toFile();
         }
     }
 
@@ -91,7 +90,9 @@ public class DefaultOCFLObjectSessionFactory implements OCFLObjectSessionFactory
 
     @Override
     public OCFLObjectSession create(final String ocflId, final String persistentStorageSessionId) {
-        final File stagingDirectory = new File(this.ocflStagingDir, persistentStorageSessionId);
+
+        final File stagingDirectory = new File(this.ocflStagingDir,
+                persistentStorageSessionId == null ? "read-only" : persistentStorageSessionId);
         stagingDirectory.mkdirs();
         return new DefaultOCFLObjectSession(ocflId, stagingDirectory.toPath(), this.ocflRepository);
     }

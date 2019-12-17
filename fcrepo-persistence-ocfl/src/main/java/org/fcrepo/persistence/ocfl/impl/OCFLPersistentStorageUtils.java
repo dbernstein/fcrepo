@@ -45,6 +45,7 @@ import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.riot.RDFFormat.NTRIPLES;
 import static org.apache.jena.riot.system.StreamRDFWriter.getWriterStream;
+import static org.fcrepo.kernel.api.FedoraTypes.FEDORA_ID_PREFIX;
 
 /**
  * A set of utility functions for supporting OCFL persistence activities.
@@ -82,7 +83,11 @@ public class OCFLPersistentStorageUtils {
      */
     public static String relativizeSubpath(final String ancestorResourceId, final String resourceId) {
         if (resourceId.equals(ancestorResourceId)) {
-            return resourceId;
+            if(resourceId.equals(FEDORA_ID_PREFIX)) {
+                return "_repository_root";
+            } else {
+                return resourceId.substring(FEDORA_ID_PREFIX.length());
+            }
         } else if (resourceId.startsWith(ancestorResourceId)) {
             return resourceId.substring(ancestorResourceId.length() + 1);
         }
@@ -136,7 +141,9 @@ public class OCFLPersistentStorageUtils {
         try (final var os = new ByteArrayOutputStream()) {
             final StreamRDF streamRDF = getWriterStream(os, getRdfFormat());
             streamRDF.start();
-            triples.forEach(streamRDF::triple);
+            if(triples != null) {
+                triples.forEach(streamRDF::triple);
+            }
             streamRDF.finish();
 
             final var is = new ByteArrayInputStream(os.toByteArray());
